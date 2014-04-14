@@ -39,6 +39,7 @@ type JiraController() =
             |> Seq.cast
             |> Seq.map (fun (m : Match) -> m.Value + ": " + jiraPath + m.Value)
             |> Seq.distinct
+            |> Seq.truncate 5 //limit maximum number of links
             |> Array.ofSeq
         else Array.empty
 

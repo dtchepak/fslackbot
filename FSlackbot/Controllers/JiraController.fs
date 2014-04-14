@@ -27,7 +27,7 @@ type SlackResponse = {
 
 type JiraController() =
     inherit ApiController()
-    let startToken = ">>> JIRA references:"
+    let startToken = ">>> "
 
     let findLinks (jiraPath : string) (jiraProjects : string) (text : string) =
         let projs = jiraProjects.Split([| ',' |], StringSplitOptions.RemoveEmptyEntries)
@@ -44,7 +44,7 @@ type JiraController() =
 
     member x.Post(jiraPath : string, jiraProjects : string, req : SlackRequest) =
         let noContent () = new HttpResponseMessage(Net.HttpStatusCode.NoContent)
-        let linksToResponse (links : string array) = { text = startToken + "\n" + String.Join("\n", links) }
+        let linksToResponse (links : string array) = { text = startToken + String.Join("\n" + startToken, links) }
 
         if req.text.StartsWith(startToken) then
             noContent() // do not reply to myself. that would be silly. hehe.

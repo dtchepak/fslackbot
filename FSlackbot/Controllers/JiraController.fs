@@ -27,7 +27,6 @@ type SlackResponse = {
 
 type JiraController() =
     inherit ApiController()
-    let startToken = ">>> "
 
     let findLinks (jiraPath : string) (jiraProjects : string) (text : string) =
         let projs = jiraProjects.Split([| ',' |], StringSplitOptions.RemoveEmptyEntries)
@@ -44,10 +43,13 @@ type JiraController() =
 
     member x.Post(jiraPath : string, jiraProjects : string, req : SlackRequest) =
         let noContent () = new HttpResponseMessage(Net.HttpStatusCode.NoContent)
-        let linksToResponse (links : string array) = { text = startToken + String.Join("\n" + startToken, links) }
+        let linksToResponse (links : string array) = { text = String.Join("\n", links) }
 
-        if req.text.StartsWith(startToken) then
-            noContent() // do not reply to myself. that would be silly. hehe.
+        if  req.user_name.ToLower() = "webhook"
+            || req.user_name.ToLower().EndsWith("bot")
+            || req.text.Contains(jiraPath) //already has a link to jira
+            then
+            noContent()
         else
             let links = findLinks jiraPath jiraProjects req.text
             if links.Any() then

@@ -38,6 +38,7 @@ type JiraController() =
             Regex.Matches(text, projRegex)
             |> Seq.cast
             |> Seq.map (fun (m : Match) -> m.Value + ": " + jiraPath + m.Value)
+            |> Seq.distinct
             |> Array.ofSeq
         else Array.empty
 

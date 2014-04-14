@@ -27,16 +27,30 @@ type SlackResponse = {
 
 type JiraController() =
     inherit ApiController()
+    let startToken = ">>> JIRA references:"
 
-    member x.Post(jiraPath : string, jiraProjects : string, req : SlackRequest) =
+    let findLinks (jiraPath : string) (jiraProjects : string) (text : string) =
         let projs = jiraProjects.Split([| ',' |], StringSplitOptions.RemoveEmptyEntries)
                         |> Array.map (fun s -> s.Trim())
                         |> Array.filter (fun s -> Regex.IsMatch(s, "^[A-Z]{1,5}$"))
-        // \b(ABC|DEF|EFG)\-\d+\b
-        let projRegex = @"\b(" + String.Join("|", projs) + @")\-\d+\b"
-        let links = Regex.Matches(req.text, projRegex)
-                    |> Seq.cast
-                    |> Seq.map (fun (m : Match) -> m.Value + ": " + jiraPath + m.Value)
-                    |> Array.ofSeq
+        if projs.Any() then
+            // \b(ABC|DEF|EFG)\-\d+\b
+            let projRegex = @"\b(" + String.Join("|", projs) + @")\-\d+\b"
+            Regex.Matches(text, projRegex)
+            |> Seq.cast
+            |> Seq.map (fun (m : Match) -> m.Value + ": " + jiraPath + m.Value)
+            |> Array.ofSeq
+        else Array.empty
 
-        {text = String.Join("\n", links)}
+    member x.Post(jiraPath : string, jiraProjects : string, req : SlackRequest) =
+        let noContent () = new HttpResponseMessage(Net.HttpStatusCode.NoContent)
+        let linksToResponse (links : string array) = { text = startToken + "\n" + String.Join("\n", links) }
+
+        if req.text.StartsWith(startToken) then
+            noContent() // do not reply to myself. that would be silly. hehe.
+        else
+            let links = findLinks jiraPath jiraProjects req.text
+            if links.Any() then
+                x.Request.CreateResponse(Net.HttpStatusCode.OK, linksToResponse links)
+            else
+                noContent()
